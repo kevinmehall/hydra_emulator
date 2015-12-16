@@ -7,13 +7,11 @@ class HydraSerial:
     def __init__(self, port, baud):
         self.port = port
         self.baud = baud
-        self.ser = serial.Serial(self.port, self.baud)
+        self.ser = serial.Serial(self.port, self.baud, timeout=0)
         self.buf = deque()
 
     def read(self, msg_cb=None):
-        for _ in range(self.ser.inWaiting()):
-            self.buf.append(self.ser.read())
-
+        self.buf.extend(self.ser.read(32768))
         self._check_for_msg(msg_cb)
 
     def write(self, msg_id, payload):
@@ -26,7 +24,7 @@ class HydraSerial:
         return msg
 
     def _check_for_msg(self, msg_cb):
-        while True:
+        while len(self.buf):
             # messages must start with 0x11 0x94
             while True:
                 if len(self.buf) > 1 and (ord(self.buf[0]) != 0x11 or ord(self.buf[1]) != 0x94):
