@@ -22,7 +22,7 @@ class HydraSerial:
 
     def _pack_msg(self, msg_id, payload):
         msg = struct.pack("<HBB%uB" % (len(payload)), (0x94<<8)|0x11, len(payload), msg_id, *bytearray(payload))
-        msg += struct.pack("<H", crc.crc(msg))
+        msg += struct.pack("<B", crc.crc8(msg))
         return msg
 
     def _check_for_msg(self, msg_cb):
@@ -36,25 +36,25 @@ class HydraSerial:
                 else:
                     break
 
-            # messages are at least 6 bytes long
-            if len(self.buf) < 6:
+            # messages are at least 5 bytes long
+            if len(self.buf) < 5:
                 # out of bytes, break
                 break
 
             # payload length is specified in protocol
             payload_len = ord(self.buf[2])
-            msg_len = 6+payload_len
+            msg_len = 5+payload_len
             if len(self.buf) < msg_len:
                 # out of bytes, break
                 break
 
             msg_str = bytearray(self.buf)[0:msg_len]
 
-            msg_struct_fmt = "<HBB%uBH" % (payload_len)
+            msg_struct_fmt = "<HBB%uBB" % (payload_len)
             msg_struct = struct.unpack(msg_struct_fmt, msg_str)
 
             msg_crc = msg_struct[-1]
-            expected_crc = crc.crc(bytes(msg_str[0:-2]))
+            expected_crc = crc.crc8(bytes(msg_str[0:-1]))
 
             if msg_crc == expected_crc:
                 msg_id = msg_struct[2]
